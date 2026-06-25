@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SportSync - Sistema de Reservas Deportivas</title>
+    <!-- Tailwind CSS para diseño moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- HEADER / BARRA DE NAVEGACIÓN -->
+    <header class="bg-emerald-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-3">
+                    <!-- Icono de Pelota / Deporte -->
+                    <span class="text-2xl">⚽</span>
+                    <span class="font-extrabold text-xl tracking-tight">SportSync</span>
+                    <span class="bg-emerald-500 text-xs px-2 py-1 rounded-full font-semibold uppercase tracking-wider">MVP Operativo</span>
+                </div>
+                <div class="hidden md:flex space-x-4">
+                    <button onclick="switchTab('reservas')" id="btn-tab-reservas" class="tab-btn px-3 py-2 rounded-md text-sm font-medium bg-emerald-700 text-white transition-all">📋 Reservas</button>
+                    <button onclick="switchTab('complejos')" id="btn-tab-complejos" class="tab-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 hover:text-white text-emerald-100 transition-all">🏢 Complejos y Canchas</button>
+                    <button onclick="switchTab('usuarios')" id="btn-tab-usuarios" class="tab-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 hover:text-white text-emerald-100 transition-all">👤 Usuarios</button>
+                    <button onclick="switchTab('db')" id="btn-tab-db" class="tab-btn px-3 py-2 rounded-md text-sm font-medium hover:bg-emerald-700 hover:text-white text-emerald-100 transition-all">💾 Estructura de Datos (JSON)</button>
+                </div>
+                <!-- Versión Móvil: Indicador rápido -->
+                <div class="md:hidden text-xs text-emerald-100 font-medium">Proyecto Académico</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- NAVEGACIÓN MÓVIL (TABS INFERIORES) -->
+    <div class="md:hidden bg-white border-t border-slate-200 fixed bottom-0 left-0 right-0 z-50 flex justify-around py-2 shadow-lg">
+        <button onclick="switchTab('reservas')" class="flex flex-col items-center text-xs font-semibold text-emerald-600" id="m-btn-reservas">
+            <span class="text-lg">📋</span>
+            <span>Reservas</span>
+        </button>
+        <button onclick="switchTab('complejos')" class="flex flex-col items-center text-xs font-semibold text-slate-500" id="m-btn-complejos">
+            <span class="text-lg">🏢</span>
+            <span>Complejos</span>
+        </button>
+        <button onclick="switchTab('usuarios')" class="flex flex-col items-center text-xs font-semibold text-slate-500" id="m-btn-usuarios">
+            <span class="text-lg">👤</span>
+            <span>Usuarios</span>
+        </button>
+        <button onclick="switchTab('db')" class="flex flex-col items-center text-xs font-semibold text-slate-500" id="m-btn-db">
+            <span class="text-lg">💾</span>
+            <span>Base Datos</span>
+        </button>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 md:pb-12">
+        
+        <!-- ==================== PESTAÑA: RESERVAS ==================== -->
+        <section id="tab-reservas" class="tab-content block">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900">Control de Reservas de Canchas</h1>
+                    <p class="text-sm text-slate-500">Administra los partidos programados, aprueba pagos y crea nuevas reservas al instante.</p>
+                </div>
+                <button onclick="openModal('modal-nueva-reserva')" class="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-lg font-semibold shadow-sm flex items-center justify-center space-x-2 transition-all">
+                    <span>⚡ Nueva Reserva</span>
+                </button>
+            </div>
+
+            <!-- KPI / Métricas Rápidas -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Reservas Totales</p>
+                        <h3 class="text-2xl font-bold text-slate-800 mt-1" id="kpi-totales">0</h3>
+                    </div>
+                    <span class="text-3xl bg-blue-50 p-2 rounded-lg text-blue-600">📊</span>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pagadas</p>
+                        <h3 class="text-2xl font-bold text-emerald-600 mt-1" id="kpi-pagadas">0</h3>
+                    </div>
+                    <span class="text-3xl bg-emerald-50 p-2 rounded-lg text-emerald-600">✅</span>
+                </div>
+                <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Pendientes</p>
+                        <h3 class="text-2xl font-bold text-amber-500 mt-1" id="kpi-pendientes">0</h3>
+                    </div>
+                    <span class="text-3xl bg-amber-50 p-2 rounded-lg text-amber-500">⏳</span>
+                </div>
+            </div>
+
+            <!-- Listado de Reservas -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                    <span class="font-bold text-sm text-slate-700 uppercase tracking-wider">Lista de Reservas Registradas</span>
+                    <span class="text-xs bg-slate-200 px-2.5 py-1 rounded-full font-medium" id="reserva-count">0 items</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left">
+                        <thead class="bg-slate-50/70 text-xs font-semibold text-slate-500 uppercase">
+                            <tr>
+                                <th class="px-6 py-3.5">ID</th>
+                                <th class="px-6 py-3.5">Usuario</th>
+                                <th class="px-6 py-3.5">Complejo y Cancha</th>
+                                <th class="px-6 py-3.5">Fecha y Hora</th>
+                                <th class="px-6 py-3.5">Costo Total</th>
+                                <th class="px-6 py-3.5">Estado</th>
+                                <th class="px-6 py-3.5 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-sm" id="tabla-reservas-body">
+                            <!-- Inyectado dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="no-reservas-msg" class="hidden text-center py-12">
+                    <span class="text-4xl">📭</span>
+                    <p class="text-slate-500 mt-2 font-medium">No hay reservas registradas en el sistema.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== PESTAÑA: COMPLEJOS Y CANCHAS ==================== -->
+        <section id="tab-complejos" class="tab-content hidden">
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-slate-900">Complejos Deportivos Aliados</h1>
+                <p class="text-sm text-slate-500">Establecimientos asociados al sistema que ofrecen canchas para alquiler.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Columna Izquierda: Formulario rápido para añadir Complejo -->
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm h-fit">
+                    <h3 class="font-bold text-slate-800 border-b pb-3 mb-4 flex items-center gap-2">
+                        <span>🏢</span> Registrar Nuevo Complejo
+                    </h3>
+                    <form onsubmit="registrarComplejo(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nombre del Complejo</label>
+                            <input type="text" id="comp-nombre" placeholder="Ej. Club de Tenis Miraflores" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Dirección</label>
+                            <input type="text" id="comp-direccion" placeholder="Ej. Av. Larco 123" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Latitud (G Maps)</label>
+                                <input type="number" step="any" id="comp-lat" placeholder="-12.046" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Longitud (G Maps)</label>
+                                <input type="number" step="any" id="comp-lng" placeholder="-77.031" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Horarios de Atención</label>
+                            <input type="text" id="comp-horario" placeholder="Ej. 08:00 - 23:00" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                        </div>
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-sm">
+                            Guardar Complejo
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Columna Derecha: Tarjetas de Complejos con sus Canchas -->
+                <div class="lg:col-span-2 space-y-6" id="lista-complejos">
+                    <!-- Inyectado dinámicamente -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== PESTAÑA: USUARIOS ==================== -->
+        <section id="tab-usuarios" class="tab-content hidden">
+            <div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold text-slate-900">Comunidad de Deportistas</h1>
+                    <p class="text-sm text-slate-500">Perfiles de los jugadores aficionados registrados en la plataforma.</p>
+                </div>
+                <button onclick="openModal('modal-nuevo-usuario')" class="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2 rounded-lg font-semibold text-sm transition-all shadow-sm flex items-center gap-2">
+                    <span>👤 Registrar Deportista</span>
+                </button>
+            </div>
+
+            <!-- Tabla de Usuarios -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200 text-left">
+                        <thead class="bg-slate-50 text-xs font-semibold text-slate-500 uppercase">
+                            <tr>
+                                <th class="px-6 py-3.5">ID</th>
+                                <th class="px-6 py-3.5">Nombre Completo</th>
+                                <th class="px-6 py-3.5">Teléfono</th>
+                                <th class="px-6 py-3.5">Ubicación / Georreferencia</th>
+                                <th class="px-6 py-3.5">Nivel de Juego</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-sm" id="tabla-usuarios-body">
+                            <!-- Inyectado dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== PESTAÑA: ESTRUCTURA DE DATOS ==================== -->
+        <section id="tab-db" class="tab-content hidden">
+            <div class="mb-6">
+                <h1 class="text-2xl font-bold text-slate-900">Esquema y Estado de la Base de Datos (JSON)</h1>
+                <p class="text-sm text-slate-500">Ideal para sustentar tu proyecto académico. Muestra en tiempo real cómo interactúan las clases/objetos.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Modelo Lógico (Clases) -->
+                <div class="bg-slate-900 text-slate-200 p-6 rounded-xl shadow-lg border border-slate-800">
+                    <h3 class="font-mono text-emerald-400 font-bold text-base mb-4 flex items-center gap-2">
+                        <span>🐍</span> Modelos de Datos en Python (Clases)
+                    </h3>
+                    <p class="text-xs text-slate-400 mb-4 font-sans">
+                        La arquitectura del backend mapea perfectamente estas entidades lógicas para la base de datos relacional.
+                    </p>
+                    <pre class="text-xs font-mono overflow-x-auto bg-slate-950 p-4 rounded-lg border border-slate-800 leading-relaxed text-slate-300">
+<span class="text-purple-400">class</span> <span class="text-blue-400">Usuario</span>:
+    id_usuario: <span class="text-amber-400">int</span>
+    nombre: <span class="text-amber-400">str</span>
+    telefono: <span class="text-amber-400">str</span>
+    geolocalizacion: <span class="text-amber-400">str</span>
+    nivel_de_juego: <span class="text-amber-400">str</span>
+
+<span class="text-purple-400">class</span> <span class="text-blue-400">ComplejoDeportivo</span>:
+    id_complejo: <span class="text-amber-400">int</span>
+    nombre: <span class="text-amber-400">str</span>
+    direccion: <span class="text-amber-400">str</span>
+    coordenadas: <span class="text-amber-400">dict</span> <span class="text-emerald-500"># {"lat": float, "lng": float}</span>
+    horarios_atencion: <span class="text-amber-400">str</span>
+
+<span class="text-purple-400">class</span> <span class="text-blue-400">Cancha</span>:
+    id_cancha: <span class="text-amber-400">int</span>
+    id_complejo: <span class="text-amber-400">int</span> <span class="text-emerald-500"># Clave foránea</span>
+    tipo_deporte: <span class="text-amber-400">str</span>
+    precio_por_hora: <span class="text-amber-400">float</span>
+    tiene_techado: <span class="text-amber-400">bool</span>
+    tiene_luz: <span class="text-amber-400">bool</span>
+
+<span class="text-purple-400">class</span> <span class="text-blue-400">Reserva</span>:
+    id_reserva: <span class="text-amber-400">int</span>
+    id_usuario: <span class="text-amber-400">int</span>  <span class="text-emerald-500"># Clave foránea</span>
+    id_cancha: <span class="text-amber-400">int</span>   <span class="text-emerald-500"># Clave foránea</span>
+    fecha: <span class="text-amber-400">str</span>
+    hora_inicio: <span class="text-amber-400">str</span>
+    hora_fin: <span class="text-amber-400">str</span>
+    estado: <span class="text-amber-400">str</span>  <span class="text-emerald-500"># "Pendiente" | "Pagado" | "Cancelado"</span></pre>
+                </div>
+
+                <!-- Estado del JSON en vivo -->
+                <div class="bg-slate-900 text-slate-200 p-6 rounded-xl shadow-lg border border-slate-800 flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-mono text-emerald-400 font-bold text-base flex items-center gap-2">
+                            <span>⚡</span> JSON Live State (Base de Datos en Memoria)
+                        </h3>
+                        <span class="bg-emerald-500 text-slate-950 font-mono text-[10px] px-2 py-0.5 rounded font-extrabold uppercase animate-pulse">Sincronizado</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-4 font-sans">
+                        Este bloque representa la carga actual de tus datos simulados. Se actualiza cada vez que agregas datos o modificas reservas.
+                    </p>
+                    <pre id="json-db-viewer" class="text-[10px] font-mono overflow-y-auto bg-slate-950 p-4 rounded-lg border border-slate-800 leading-normal text-slate-300 flex-grow max-h-[450px]">
+                        <!-- Inyectado dinámicamente -->
+                    </pre>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 py-6 border-t border-slate-800 mt-auto text-center text-xs">
+        <p class="font-semibold text-slate-300">© 2026 SportSync - Prototipo Operativo Académico</p>
+        <p class="mt-1 text-slate-500">Estructurado bajo los lineamientos del Business Model Canvas y los requisitos de base de datos definidos.</p>
+    </footer>
+
+
+    <!-- ==================== MODALES ==================== -->
+
+    <!-- Modal: Nueva Reserva -->
+    <div id="modal-nueva-reserva" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden transition-all transform scale-95 opacity-0 duration-300" id="modal-nueva-reserva-content">
+            <div class="p-5 bg-emerald-600 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg">⚡ Crear Nueva Reserva</h3>
+                <button onclick="closeModal('modal-nueva-reserva')" class="text-white hover:text-emerald-100 text-xl font-bold">&times;</button>
+            </div>
+            <form onsubmit="crearReserva(event)" class="p-5 space-y-4">
+                <!-- Seleccionar Usuario -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Deportista</label>
+                    <select id="res-usuario" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <!-- Seleccionar Cancha -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Cancha Disponible</label>
+                    <select id="res-cancha" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                        <!-- Opciones dinámicas -->
+                    </select>
+                </div>
+                <!-- Fecha -->
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Fecha</label>
+                    <input type="date" id="res-fecha" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                </div>
+                <!-- Horas -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Hora Inicio</label>
+                        <input type="time" id="res-inicio" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Hora Fin</label>
+                        <input type="time" id="res-fin" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                    </div>
+                </div>
+                <!-- Botones -->
+                <div class="flex space-x-3 pt-3 border-t">
+                    <button type="button" onclick="closeModal('modal-nueva-reserva')" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-lg text-sm transition-all">Cancelar</button>
+                    <button type="submit" class="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-sm">Reservar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Agregar Cancha a Complejo -->
+    <div id="modal-nueva-cancha" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden transition-all transform scale-95 opacity-0 duration-300" id="modal-nueva-cancha-content">
+            <div class="p-5 bg-emerald-600 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg">🎾 Registrar Cancha en <span id="nombre-complejo-modal" class="underline"></span></h3>
+                <button onclick="closeModal('modal-nueva-cancha')" class="text-white hover:text-emerald-100 text-xl font-bold">&times;</button>
+            </div>
+            <form onsubmit="crearCancha(event)" class="p-5 space-y-4">
+                <input type="hidden" id="cancha-complejo-id">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Tipo de Deporte</label>
+                    <select id="cancha-deporte" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" required>
+                        <option value="Fútbol">⚽ Fútbol</option>
+                        <option value="Pádel">🎾 Pádel</option>
+                        <option value="Vóley">🏐 Vóley</option>
+                        <option value="Básquet">🏀 Básquet</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Precio por Hora (S/.)</label>
+                    <input type="number" id="cancha-precio" placeholder="Ej. 100" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none" min="1" required>
+                </div>
+                <div class="grid grid-cols-2 gap-4 pt-2">
+                    <label class="flex items-center space-x-2.5 cursor-pointer">
+                        <input type="checkbox" id="cancha-techado" class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500">
+                        <span class="text-sm font-semibold text-slate-700">¿Es Techada?</span>
+                    </label>
+                    <label class="flex items-center space-x-2.5 cursor-pointer">
+                        <input type="checkbox" id="cancha-luz" class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500">
+                        <span class="text-sm font-semibold text-slate-700">¿Tiene Luz?</span>
+                    </label>
+                </div>
+                <!-- Botones -->
+                <div class="flex space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeModal('modal-nueva-cancha')" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-lg text-sm transition-all">Cancelar</button>
+                    <button type="submit" class="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-sm">Guardar Cancha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Nuevo Usuario -->
+    <div id="modal-nuevo-usuario" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden transition-all transform scale-95 opacity-0 duration-300" id="modal-nuevo-usuario-content">
+            <div class="p-5 bg-slate-800 text-white flex justify-between items-center">
+                <h3 class="font-bold text-lg">👤 Nuevo Registro de Deportista</h3>
+                <button onclick="closeModal('modal-nuevo-usuario')" class="text-white hover:text-slate-200 text-xl font-bold">&times;</button>
+            </div>
+            <form onsubmit="registrarUsuario(event)" class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nombre Completo</label>
+                    <input type="text" id="user-nombre" placeholder="Ej. Pedro Picapiedra" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Teléfono Móvil</label>
+                    <input type="tel" id="user-telefono" placeholder="Ej. +51 987654321" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Geolocalización / Distrito</label>
+                    <input type="text" id="user-geo" placeholder="Ej. San Borja" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none" required>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-1">Nivel de Juego</label>
+                    <select id="user-nivel" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-700 focus:outline-none" required>
+                        <option value="Amateur">Amateur (Principiante)</option>
+                        <option value="Intermedio">Intermedio (Regular)</option>
+                        <option value="Avanzado">Avanzado (Pro/Federado)</option>
+                    </select>
+                </div>
+                <!-- Botones -->
+                <div class="flex space-x-3 pt-4 border-t">
+                    <button type="button" onclick="closeModal('modal-nuevo-usuario')" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-lg text-sm transition-all">Cancelar</button>
+                    <button type="submit" class="w-1/2 bg-slate-800 hover:bg-slate-900 text-white font-semibold py-2.5 rounded-lg text-sm transition-all shadow-sm">Guardar Jugador</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Simulación Google Maps -->
+    <div id="modal-maps" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl shadow-xl border border-slate-200 max-w-lg w-full overflow-hidden transition-all transform scale-95 opacity-0 duration-300" id="modal-maps-content">
+            <div class="p-4 bg-emerald-600 text-white flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2">📍 Google Maps Link Simulator</h3>
+                <button onclick="closeModal('modal-maps')" class="text-white hover:text-emerald-100 text-xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 text-center">
+                <div class="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 border-4 border-emerald-100">
+                    <span class="text-3xl">🗺️</span>
+                </div>
+                <h4 class="font-extrabold text-slate-800 text-lg" id="maps-title">Ubicación del Complejo</h4>
+                <p class="text-xs text-slate-400 font-mono mt-1" id="maps-coords">Lat: 0.000, Lng: 0.000</p>
+                <p class="text-sm text-slate-500 mt-3" id="maps-direccion">Cargando dirección...</p>
+                
+                <!-- Croquis / Mapa Visual simulado en SVG -->
+                <div class="mt-6 border border-slate-200 bg-slate-100 rounded-lg p-1.5 h-48 overflow-hidden relative shadow-inner">
+                    <div class="absolute inset-0 bg-emerald-50 bg-[radial-gradient(#d1fae5_2px,transparent_2px)] [background-size:16px_16px] flex items-center justify-center">
+                        <div class="text-center relative">
+                            <!-- Indicador de PIN -->
+                            <div class="text-4xl animate-bounce">📍</div>
+                            <div class="w-8 h-2 bg-slate-900/20 rounded-full mx-auto -mt-1 blur-[1px]"></div>
+                            <span class="absolute top-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-slate-950 text-white text-[10px] px-2 py-0.5 rounded shadow font-bold" id="maps-marker-label">Complejo Deportivo</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex space-x-3">
+                    <button onclick="closeModal('modal-maps')" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-lg text-sm transition-all">Cerrar Mapa</button>
+                    <a id="maps-external-link" href="#" target="_blank" class="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg text-sm transition-all flex items-center justify-center gap-2 shadow-sm">
+                        <span>Ver en Maps Real ↗</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ==================== LOGICA JAVASCRIPT ==================== -->
+    <script>
+        // ==========================================
+        // BASE DE DATOS (BD) EN MEMORIA
+        // ==========================================
+        let db = {
+            usuarios: [
+                { id: 1, nombre: "Juan Pérez", telefono: "+51 987654321", geolocalizacion: "Lima Centro", nivel_de_juego: "Intermedio" },
+                { id: 2, nombre: "María Silva", telefono: "+51 912345678", geolocalizacion: "Miraflores", nivel_de_juego: "Avanzado" },
+                { id: 3, nombre: "Carlos Torres", telefono: "+51 999888777", geolocalizacion: "San Borja", nivel_de_juego: "Amateur" }
+            ],
+            complejos: [
+                { id: 1, nombre: "Complejo Deportivo El Monumental", direccion: "Av. Javier Prado Este 1234, Ate", coordenadas: { lat: -12.0844, lng: -76.9715 }, horarios_atencion: "07:00 - 23:00" },
+                { id: 2, nombre: "Arena Pádel Club", direccion: "Calle Las Begonias 456, San Isidro", coordenadas: { lat: -12.0954, lng: -77.0282 }, horarios_atencion: "06:00 - 00:00" }
+            ],
+            canchas: [
+                { id: 1, id_complejo: 1, tipo_deporte: "Fútbol", precio_por_hora: 120.00, tiene_techado: true, tiene_luz: true },
+                { id: 2, id_complejo: 1, tipo_deporte: "Vóley", precio_por_hora: 60.00, tiene_techado: true, tiene_luz: false },
+                { id: 3, id_complejo: 2, tipo_deporte: "Pádel", precio_por_hora: 90.00, tiene_techado: false, tiene_luz: true }
+            ],
+            reservas: [
+                { id: 1, id_usuario: 1, id_cancha: 1, fecha: "2026-06-20", hora_inicio: "19:00", hora_fin: "20:00", estado: "Pagado" },
+                { id: 2, id_usuario: 2, id_cancha: 3, fecha: "2026-06-21", hora_inicio: "18:30", hora_fin: "20:30", estado: "Pendiente" }
+            ]
+        };
+
+        // ==========================================
+        // CONTROLADORES DE RENDERIZADO Y NAVEGACIÓN
+        // ==========================================
+        window.addEventListener('DOMContentLoaded', () => {
+            renderAll();
+        });
+
+        function renderAll() {
+            renderReservas();
+            renderComplejos();
+            renderUsuarios();
+            renderJSONViewer();
+            actualizarMetricas();
+            cargarOpcionesModales();
+        }
+
+        // Navegación de pestañas (Responsive y Desktop)
+        function switchTab(tabId) {
+            // Ocultar todas las secciones
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('block'));
+            
+            // Mostrar pestaña seleccionada
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            activeTab.classList.remove('hidden');
+            activeTab.classList.add('block');
+
+            // Actualizar estados visuales de los botones (Desktop)
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('bg-emerald-700', 'text-white');
+                btn.classList.add('hover:bg-emerald-700', 'hover:text-white', 'text-emerald-100');
+            });
+            const activeBtn = document.getElementById(`btn-tab-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('hover:bg-emerald-700', 'hover:text-white', 'text-emerald-100');
+                activeBtn.classList.add('bg-emerald-700', 'text-white');
+            }
+
+            // Actualizar botones móviles
+            const mButtons = ['reservas', 'complejos', 'usuarios', 'db'];
+            mButtons.forEach(btnKey => {
+                const btn = document.getElementById(`m-btn-${btnKey}`);
+                if (btn) {
+                    if (btnKey === tabId) {
+                        btn.classList.remove('text-slate-500');
+                        btn.classList.add('text-emerald-600');
+                    } else {
+                        btn.classList.remove('text-emerald-600');
+                        btn.classList.add('text-slate-500');
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // RENDER DE CADA TABLA / ENTIDAD
+        // ==========================================
+
+        // RENDER: RESERVAS
+        function renderReservas() {
+            const tbody = document.getElementById('tabla-reservas-body');
+            const noReservasMsg = document.getElementById('no-reservas-msg');
+            tbody.innerHTML = '';
+
+            if (db.reservas.length === 0) {
+                noReservasMsg.classList.remove('hidden');
+                document.getElementById('reserva-count').innerText = "0 reservas";
+                return;
+            } else {
+                noReservasMsg.classList.add('hidden');
+            }
+
+            document.getElementById('reserva-count').innerText = `${db.reservas.length} reservas`;
+
+            db.reservas.forEach(res => {
+                const user = db.usuarios.find(u => u.id === res.id_usuario);
+                const cancha = db.canchas.find(c => c.id === res.id_cancha);
+                const complejo = cancha ? db.complejos.find(comp => comp.id === cancha.id_complejo) : null;
+
+                const userLabel = user ? `${user.nombre} (${user.telefono})` : 'Desconocido';
+                const canchaLabel = cancha && complejo ? `${complejo.nombre} - Cancha ${cancha.tipo_deporte}` : 'Cancha no asignada';
+                
+                // Calcular duración y precio aproximados
+                let costoTotal = 0;
+                if (cancha) {
+                    const [hIni, mIni] = res.hora_inicio.split(':').map(Number);
+                    const [hFin, mFin] = res.hora_fin.split(':').map(Number);
+                    const diffHrs = (hFin + mFin/60) - (hIni + mIni/60);
+                    costoTotal = Math.max(0.5, diffHrs) * cancha.precio_por_hora;
+                }
+
+                // Colores para estados
+                let badgeClass = "bg-amber-100 text-amber-800";
+                if (res.estado === 'Pagado') badgeClass = "bg-emerald-100 text-emerald-800";
+                if (res.estado === 'Cancelado') badgeClass = "bg-rose-100 text-rose-800";
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs font-bold text-slate-400">#RES-${res.id}</td>
+                        <td class="px-6 py-4">
+                            <div class="font-semibold text-slate-800">${user ? user.nombre : 'Anónimo'}</div>
+                            <div class="text-xs text-slate-400 font-mono">${user ? user.telefono : '-'}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="font-medium text-slate-700">${canchaLabel}</div>
+                            <div class="text-xs text-slate-400">${cancha ? `Precio: S/. ${cancha.precio_por_hora}/hora` : ''}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-slate-800 font-semibold">${res.fecha}</div>
+                            <div class="text-xs text-emerald-600 font-bold">${res.hora_inicio} a ${res.hora_fin}</div>
+                        </td>
+                        <td class="px-6 py-4 font-bold text-slate-900">S/. ${costoTotal.toFixed(2)}</td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${badgeClass}">
+                                ${res.estado}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-right space-x-1.5 whitespace-nowrap">
+                            ${res.estado === 'Pendiente' ? `
+                                <button onclick="cambiarEstadoReserva(${res.id}, 'Pagado')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold transition-all shadow-sm">Pagar</button>
+                            ` : ''}
+                            ${res.estado !== 'Cancelado' ? `
+                                <button onclick="cambiarEstadoReserva(${res.id}, 'Cancelado')" class="bg-slate-100 hover:bg-rose-100 hover:text-rose-700 text-slate-600 text-xs px-2.5 py-1.5 rounded-lg font-bold transition-all">Cancelar</button>
+                            ` : `
+                                <button onclick="eliminarReserva(${res.id})" class="text-rose-600 hover:text-rose-800 text-xs font-bold px-2 py-1">Eliminar</button>
+                            `}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // RENDER: COMPLEJOS Y CANCHAS
+        function renderComplejos() {
+            const listContainer = document.getElementById('lista-complejos');
+            listContainer.innerHTML = '';
+
+            db.complejos.forEach(comp => {
+                // Filtrar canchas de este complejo
+                const canchasComp = db.canchas.filter(c => c.id_complejo === comp.id);
+                
+                let canchasHtml = '';
+                if (canchasComp.length === 0) {
+                    canchasHtml = `
+                        <div class="p-4 text-center border-2 border-dashed border-slate-200 rounded-lg text-slate-400 text-xs font-medium">
+                            No hay canchas configuradas en este complejo deportivo.
+                        </div>
+                    `;
+                } else {
+                    canchasComp.forEach(c => {
+                        canchasHtml += `
+                            <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-base">${obtenerIconoDeporte(c.tipo_deporte)}</span>
+                                        <span class="font-bold text-slate-800">Cancha de ${c.tipo_deporte}</span>
+                                        <span class="text-[10px] uppercase font-bold text-slate-400 font-mono">#C-${c.id}</span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-2 mt-1.5">
+                                        <span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                                            ${c.tiene_techado ? '🏠 Techado' : '☀️ Al Aire Libre'}
+                                        </span>
+                                        <span class="bg-slate-200 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
+                                            ${c.tiene_luz ? '💡 Con Iluminación' : '🌑 Sin Iluminación'}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between w-full sm:w-auto gap-4">
+                                    <span class="text-sm font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded">
+                                        S/. ${c.precio_por_hora.toFixed(2)} / hora
+                                    </span>
+                                    <button onclick="eliminarCancha(${c.id})" class="text-slate-400 hover:text-rose-600 transition-colors text-xs font-medium" title="Eliminar Cancha">🗑️</button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+
+                listContainer.innerHTML += `
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                        <!-- Cabecera del Complejo -->
+                        <div class="p-5 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                            <div>
+                                <h3 class="font-extrabold text-lg text-slate-800">${comp.nombre}</h3>
+                                <p class="text-sm text-slate-500 mt-0.5 flex items-center gap-1.5">
+                                    <span>📍</span> ${comp.direccion}
+                                    <button onclick="verUbicacionMaps(${comp.id})" class="text-emerald-600 hover:text-emerald-700 font-bold text-xs inline-flex items-center gap-0.5 underline">
+                                        [Ver Mapa]
+                                    </button>
+                                </p>
+                                <div class="flex gap-4 mt-2 text-xs text-slate-400 font-semibold">
+                                    <span>🕒 Horarios: <strong class="text-slate-600">${comp.horarios_atencion}</strong></span>
+                                    <span>ID Complejo: <strong class="text-slate-600 font-mono">#CP-${comp.id}</strong></span>
+                                </div>
+                            </div>
+                            <button onclick="abrirModalAgregarCancha(${comp.id}, '${comp.nombre}')" class="w-full sm:w-auto bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs px-3.5 py-2 rounded-lg shadow-sm transition-all text-center">
+                                ➕ Añadir Cancha
+                            </button>
+                        </div>
+                        <!-- Lista de Canchas -->
+                        <div class="p-5 space-y-3.5">
+                            <h4 class="text-xs font-extrabold uppercase text-slate-400 tracking-wider">Canchas de este Establecimiento</h4>
+                            ${canchasHtml}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // RENDER: USUARIOS
+        function renderUsuarios() {
+            const tbody = document.getElementById('tabla-usuarios-body');
+            tbody.innerHTML = '';
+
+            db.usuarios.forEach(user => {
+                let badgeClass = "bg-slate-100 text-slate-700";
+                if (user.nivel_de_juego === 'Intermedio') badgeClass = "bg-blue-50 text-blue-700 border border-blue-100";
+                if (user.nivel_de_juego === 'Avanzado') badgeClass = "bg-rose-50 text-rose-700 border border-rose-100";
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs font-bold text-slate-400">#USR-${user.id}</td>
+                        <td class="px-6 py-4 font-semibold text-slate-800">${user.nombre}</td>
+                        <td class="px-6 py-4 font-mono text-slate-600">${user.telefono}</td>
+                        <td class="px-6 py-4 flex items-center gap-1">
+                            <span class="text-slate-400">📍</span> ${user.geolocalizacion}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="px-2.5 py-1 rounded text-xs font-bold ${badgeClass}">
+                                ${user.nivel_de_juego}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // RENDER: RAW JSON LIVE DATABASE
+        function renderJSONViewer() {
+            const viewer = document.getElementById('json-db-viewer');
+            viewer.innerText = JSON.stringify(db, null, 4);
+        }
+
+        // ==========================================
+        // PROCESOS Y LÓGICA DE NEGOCIO (OPERACIONES)
+        // ==========================================
+
+        // Actualizar KPIs de la parte superior
+        function actualizarMetricas() {
+            const totales = db.reservas.length;
+            const pagadas = db.reservas.filter(r => r.estado === 'Pagado').length;
+            const pendientes = db.reservas.filter(r => r.estado === 'Pendiente').length;
+
+            document.getElementById('kpi-totales').innerText = totales;
+            document.getElementById('kpi-pagadas').innerText = pagadas;
+            document.getElementById('kpi-pendientes').innerText = pendientes;
+        }
+
+        // Cambiar estado de una reserva (Pagado / Cancelado)
+        function cambiarEstadoReserva(id, nuevoEstado) {
+            const res = db.reservas.find(r => r.id === id);
+            if (res) {
+                res.estado = nuevoEstado;
+                renderAll();
+            }
+        }
+
+        // Eliminar reserva
+        function eliminarReserva(id) {
+            db.reservas = db.reservas.filter(r => r.id !== id);
+            renderAll();
+        }
+
+        // Registrar Nuevo Complejo
+        function registrarComplejo(event) {
+            event.preventDefault();
+            const id = db.complejos.length > 0 ? Math.max(...db.complejos.map(c => c.id)) + 1 : 1;
+            const nombre = document.getElementById('comp-nombre').value;
+            const direccion = document.getElementById('comp-direccion').value;
+            const lat = parseFloat(document.getElementById('comp-lat').value);
+            const lng = parseFloat(document.getElementById('comp-lng').value);
+            const horarios = document.getElementById('comp-horario').value;
+
+            db.complejos.push({
+                id,
+                nombre,
+                direccion,
+                coordenadas: { lat, lng },
+                horarios_atencion: horarios
+            });
+
+            // Resetear Formulario
+            event.target.reset();
+            renderAll();
+        }
+
+        // Abrir Modal de Registro de Cancha
+        function abrirModalAgregarCancha(complejoId, complejoNombre) {
+            document.getElementById('cancha-complejo-id').value = complejoId;
+            document.getElementById('nombre-complejo-modal').innerText = complejoNombre;
+            openModal('modal-nueva-cancha');
+        }
+
+        // Crear Cancha
+        function crearCancha(event) {
+            event.preventDefault();
+            const complejoId = parseInt(document.getElementById('cancha-complejo-id').value);
+            const id = db.canchas.length > 0 ? Math.max(...db.canchas.map(c => c.id)) + 1 : 1;
+            const deporte = document.getElementById('cancha-deporte').value;
+            const precio = parseFloat(document.getElementById('cancha-precio').value);
+            const techado = document.getElementById('cancha-techado').checked;
+            const luz = document.getElementById('cancha-luz').checked;
+
+            db.canchas.push({
+                id,
+                id_complejo: complejoId,
+                tipo_deporte: deporte,
+                precio_por_hora: precio,
+                tiene_techado: techado,
+                tiene_luz: luz
+            });
+
+            closeModal('modal-nueva-cancha');
+            event.target.reset();
+            renderAll();
+        }
+
+        // Eliminar cancha
+        function eliminarCancha(id) {
+            db.canchas = db.canchas.filter(c => c.id !== id);
+            // También cancelamos reservas huérfanas
+            db.reservas = db.reservas.filter(r => r.id_cancha !== id);
+            renderAll();
+        }
+
+        // Registrar Jugador / Deportista
+        function registrarUsuario(event) {
+            event.preventDefault();
+            const id = db.usuarios.length > 0 ? Math.max(...db.usuarios.map(u => u.id)) + 1 : 1;
+            const nombre = document.getElementById('user-nombre').value;
+            const telefono = document.getElementById('user-telefono').value;
+            const geo = document.getElementById('user-geo').value;
+            const nivel = document.getElementById('user-nivel').value;
+
+            db.usuarios.push({ id, nombre, telefono, geolocalizacion: geo, nivel_de_juego: nivel });
+
+            closeModal('modal-nuevo-usuario');
+            event.target.reset();
+            renderAll();
+        }
+
+        // Crear Reserva
+        function crearReserva(event) {
+            event.preventDefault();
+            const id = db.reservas.length > 0 ? Math.max(...db.reservas.map(r => r.id)) + 1 : 1;
+            const id_usuario = parseInt(document.getElementById('res-usuario').value);
+            const id_cancha = parseInt(document.getElementById('res-cancha').value);
+            const fecha = document.getElementById('res-fecha').value;
+            const hora_inicio = document.getElementById('res-inicio').value;
+            const hora_fin = document.getElementById('res-fin').value;
+
+            db.reservas.push({
+                id,
+                id_usuario,
+                id_cancha,
+                fecha,
+                hora_inicio,
+                hora_fin,
+                estado: "Pendiente"
+            });
+
+            closeModal('modal-nueva-reserva');
+            event.target.reset();
+            renderAll();
+        }
+
+        // Simulación visual de Google Maps
+        function verUbicacionMaps(complejoId) {
+            const comp = db.complejos.find(c => c.id === complejoId);
+            if (comp) {
+                document.getElementById('maps-title').innerText = comp.nombre;
+                document.getElementById('maps-coords').innerText = `Coordenadas G Maps: [ Lat: ${comp.coordenadas.lat} , Lng: ${comp.coordenadas.lng} ]`;
+                document.getElementById('maps-direccion').innerText = comp.direccion;
+                document.getElementById('maps-marker-label').innerText = comp.nombre;
+                
+                // Configurar enlace real externo a Google Maps
+                const extLink = `https://www.google.com/maps/search/?api=1&query=${comp.coordenadas.lat},${comp.coordenadas.lng}`;
+                document.getElementById('maps-external-link').href = extLink;
+
+                openModal('modal-maps');
+            }
+        }
+
+        // ==========================================
+        // HELPERS / AUXILIARES
+        // ==========================================
+
+        function obtenerIconoDeporte(deporte) {
+            switch(deporte) {
+                case 'Fútbol': return '⚽';
+                case 'Pádel': return '🎾';
+                case 'Vóley': return '🏐';
+                case 'Básquet': return '🏀';
+                default: return '👟';
+            }
+        }
+
+        // Cargar listas en los selects para creación de datos
+        function cargarOpcionesModales() {
+            // Select de usuarios en reserva
+            const selectUser = document.getElementById('res-usuario');
+            selectUser.innerHTML = '';
+            db.usuarios.forEach(u => {
+                selectUser.innerHTML += `<option value="${u.id}">${u.nombre} (${u.nivel_de_juego})</option>`;
+            });
+
+            // Select de canchas en reserva
+            const selectCancha = document.getElementById('res-cancha');
+            selectCancha.innerHTML = '';
+            db.canchas.forEach(c => {
+                const comp = db.complejos.find(cp => cp.id === c.id_complejo);
+                const compNombre = comp ? comp.nombre : 'Complejo Desconocido';
+                selectCancha.innerHTML += `<option value="${c.id}">${compNombre} - Cancha ${c.tipo_deporte} (S/. ${c.precio_por_hora}/h)</option>`;
+            });
+        }
+
+        // Control de Apertura/Cierre de Modales
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            const content = document.getElementById(`${id}-content`);
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 50);
+        }
+
+        function closeModal(id) {
+            const content = document.getElementById(`${id}-content`);
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                document.getElementById(id).classList.add('hidden');
+            }, 250);
+        }
+    </script>
+</body>
+</html>
